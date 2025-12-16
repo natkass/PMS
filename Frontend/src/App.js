@@ -94,9 +94,9 @@ function App() {
 
   return (
     <HelmetProvider>
-      <Router>
+      <Router exact basename="/pms">
         <Routes>
-          <Route exact path="/" element={<Login />} />
+          <Route  path="/" element={<Login />} />
           <Route path="/FirstReset" element={<FirstReset />} />
           {/* <Route exact path="/home/*" element={<MainRoutes />} /> */}
           <Route

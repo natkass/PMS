@@ -1,6 +1,7 @@
 {
   "name": "pms",
   "version": "0.1.0",
+  "homepage": "/pms",
   "private": true,
   "dependencies": {
     "@material-ui/core": "^4.12.4",

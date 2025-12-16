@@ -1,0 +1,7 @@
+node_modules
+build
+src.zip
+.git
+.log
+Dockerfile
+npm-debug.log

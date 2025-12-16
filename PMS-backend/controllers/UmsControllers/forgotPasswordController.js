@@ -20,7 +20,9 @@ const transporter = nodemailer.createTransport({
     rejectUnAuthorized: true,
   },
 });
-
+const handleconsole = async (req, res) => {
+  console.log("ums api innnn");
+}
 const handleforgot = async (req, res) => {
   const email = req.body.email;
   const hash = crypto.randomBytes(16).toString("hex");
@@ -100,4 +102,4 @@ const handleReset = async (req, res) => {
   }
 };
 
-module.exports = { handleforgot, handleReset };
+module.exports = { handleforgot, handleReset , handleconsole};

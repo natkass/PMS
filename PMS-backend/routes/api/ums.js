@@ -31,6 +31,7 @@ var upload = multer({ storage: storage });
 // router.route('/registerUser')
 //     .post(registerController.handleNewUser)
 router.route("/forgotPassword").post(forgotPasswordController.handleforgot);
+router.route("/").get(forgotPasswordController.handleconsole);
 router.route("/resetPassword").post(forgotPasswordController.handleReset);
 router
   .route("/registerUser")

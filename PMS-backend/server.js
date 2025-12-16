@@ -41,7 +41,7 @@ app.listen(PORT, "0.0.0.0", () => {
 });
 
 // Start the Socket.IO server
-const socketPort = 5001;
+const socketPort = process.env.socketPort || 5001;
 server.listen(socketPort, "0.0.0.0", () => {
   console.log(`Socket Server running on port ${socketPort}`);
 });
