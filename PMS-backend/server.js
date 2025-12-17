@@ -1,4 +1,5 @@
 require("dotenv").config();
+const client = require("prom-client");
 const express = require("express");
 const http = require("http");
 const cors = require("cors");
@@ -33,7 +34,13 @@ app.use(express.static(path.join(__dirname, "build")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics();
 
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", client.register.contentType);
+  res.end(await client.register.metrics());
+});
 // Start the main server
 const PORT = process.env.PORT || 3500;
 app.listen(PORT, "0.0.0.0", () => {

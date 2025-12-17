@@ -12,6 +12,7 @@
     media_volume:
     redisdata:
     grafana_data:
+    prometheus_data:
 
   services:
     backend:
@@ -86,6 +87,7 @@
         - frontend
       networks:
         - pms-network
+        - monitoring
 
     loki:
       image: grafana/loki:2.8.2
@@ -110,6 +112,34 @@
         - monitoring
       restart: always
 
+    prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      command:
+        - "--config.file=/etc/prometheus/prometheus.yml"
+        - "--storage.tsdb.path=/prometheus"
+        - "--web.enable-lifecycle"
+      volumes:
+        - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        - prometheus_data:/prometheus
+      ports:
+        - "9090:9090"
+      networks:
+        - monitoring
+      restart: always
+  
+    node-exporter:
+      image: prom/node-exporter:latest
+      container_name: node-exporter
+      restart: always
+      networks:
+        - monitoring
+      pid: host
+      command:
+        - '--path.rootfs=/host'
+      volumes:
+        - /:/host:ro,rslave
+
     grafana:
       image: grafana/grafana:latest
       container_name: grafana
@@ -118,6 +148,8 @@
       environment:
         - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
         - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme}
+        - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/pms/grafana
+        - GF_SERVER_SERVE_FROM_SUB_PATH=true
       volumes:
         - grafana_data:/var/lib/grafana
       networks:
