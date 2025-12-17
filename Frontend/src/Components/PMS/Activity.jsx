@@ -31,6 +31,7 @@ import Activitiesedit from "./Activitiesedit";
 import Activitycommentview from "./Activitycommentview";
 import Activitydelete from "./Activitydelete";
 import "./Tasks.css";
+import AdvancedCommentSystem from "./Advancedactivitycomment";
 
 const Activity = (props) => {
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -240,8 +241,8 @@ const Activity = (props) => {
     statusFilter === "All"
       ? activities
       : activities.filter(
-          (row) => row.activity.activity_status === statusFilter
-        );
+        (row) => row.activity.activity_status === statusFilter
+      );
 
   const search = filteredRows.filter(
     (row) =>
@@ -454,11 +455,10 @@ const Activity = (props) => {
               <button
                 key={status}
                 onClick={() => handleFilterClick(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  statusFilter === status
-                    ? "bg-slate-800 text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-50"
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${statusFilter === status
+                  ? "bg-slate-800 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-50"
+                  }`}
               >
                 {status}
               </button>
@@ -504,14 +504,12 @@ const Activity = (props) => {
                       className="sr-only"
                     />
                     <div
-                      className={`w-10 h-5 rounded-full transition-colors ${
-                        formData.is_milestone ? "bg-blue-600" : "bg-slate-300"
-                      }`}
+                      className={`w-10 h-5 rounded-full transition-colors ${formData.is_milestone ? "bg-blue-600" : "bg-slate-300"
+                        }`}
                     >
                       <div
-                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                          formData.is_milestone ? "transform translate-x-5" : ""
-                        }`}
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${formData.is_milestone ? "transform translate-x-5" : ""
+                          }`}
                       ></div>
                     </div>
                   </div>
@@ -625,7 +623,7 @@ const Activity = (props) => {
                       dt2.getHours(),
                       dt2.getMinutes()
                     )) /
-                    (1000 * 60 * 60 * 24)
+                  (1000 * 60 * 60 * 24)
                 );
               };
 
@@ -683,15 +681,17 @@ const Activity = (props) => {
 
                       {/* Actions Menu */}
                       <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleMenuOpen(activity.activity_id);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                        >
-                          <MoreHorizIcon />
-                        </button>
+                        {(updateActivity !== 0 || deleteActivity !== 0) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMenuOpen(activity.activity_id);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                          >
+                            <MoreHorizIcon />
+                          </button>
+                        )}
 
                         {openRowMenu === activity.activity_id && (
                           <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 z-10 min-w-[120px] py-1">
@@ -817,11 +817,11 @@ const Activity = (props) => {
                               fill="none"
                               stroke={
                                 days_left <= 0 &&
-                                activity_progress !== "Completed"
+                                  activity_progress !== "Completed"
                                   ? "#EF4444" // Red color for deadline passed
                                   : getProgressBarColor(
-                                      parseInt(progress_result)
-                                    )
+                                    parseInt(progress_result)
+                                  )
                               }
                               strokeWidth="3"
                               strokeDasharray={`${progress_result}, 100`}
@@ -843,7 +843,7 @@ const Activity = (props) => {
                             completed={parseInt(progress_result)}
                             bgColor={
                               days_left <= 0 &&
-                              activity_progress !== "Completed"
+                                activity_progress !== "Completed"
                                 ? "#EF4444" // Red color for deadline passed
                                 : getProgressBarColor(parseInt(progress_result))
                             }
@@ -947,18 +947,7 @@ const Activity = (props) => {
                         <span>View Comments</span>
                       </button>
 
-                      {commentOnActivity !== 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCommentOnActivityClick(activity);
-                          }}
-                          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          <AddCommentIcon fontSize="small" />
-                          <span>Add Comment</span>
-                        </button>
-                      )}
+
                     </div>
                   </div>
                 </div>
@@ -1093,7 +1082,7 @@ const Activity = (props) => {
         </div>
       )}
 
-      {commentModalOpen && (
+      {/* {commentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div
             className="bg-white rounded-xl w-11/12 md:w-1/4 max-w-md"
@@ -1123,9 +1112,53 @@ const Activity = (props) => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {viewcommentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div
+            className="bg-white rounded-xl w-11/12 md:w-3/4 lg:w-2/3 max-w-6xl max-h-[90vh]"
+            ref={modalRef}
+          >
+            <div className="flex justify-between items-center p-4 border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-slate-800">
+                  Activity Comments
+                </h3>
+                <span className="text-sm px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full">
+                  {selectedRow?.name}
+                </span>
+              </div>
+              <button
+                onClick={handleDetailModalClose}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 h-[calc(90vh-120px)]">
+              <AdvancedCommentSystem
+                activityId={selectedRow?.activity_id}
+                activityName={selectedRow?.name}
+                userId={userInfo?.foundUser?.user_id}
+                userRole={userInfo?.foundUser?.role}
+                userPermissions={{
+                  canAddComment: commentOnActivity !== 0,
+                  canEditOwnComments: true,
+                  canDeleteOwnComments: true,
+                  canPinComments: userInfo?.foundUser?.role === 'admin' || userInfo?.foundUser?.role === 'manager',
+                  canViewPrivateComments: userInfo?.foundUser?.role === 'admin' || userInfo?.foundUser?.role === 'manager'
+                }}
+                handleCloseModal={handleDetailModalClose}
+                handlefetchActivity={handlefetchActivity}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* {viewcommentModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div
             className="bg-white rounded-xl w-11/12 md:w-1/4 max-w-md"
@@ -1153,7 +1186,7 @@ const Activity = (props) => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">

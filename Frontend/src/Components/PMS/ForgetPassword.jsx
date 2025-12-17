@@ -1,5 +1,6 @@
 import React from "react";
 import ethiopian_civil_service_commistion_logo from "../Assets/ethiopian_civil_service_commistion_logo.png";
+import EaiiLogin from "../Assets/EaiiLoginicon.png";
 import ForgetPasswordContainer from "./ForgetPasswordContainer";
 import { CheckCircle, Security, Email, OpenInNew } from "@mui/icons-material";
 
@@ -29,8 +30,8 @@ const ForgetPassword = () => {
                 <div className="flex justify-center mb-6 sm:mb-7 md:mb-8">
                   <div className="bg-white/20 p-3 sm:p-3.5 md:p-4 rounded-xl sm:rounded-2xl backdrop-blur-sm border border-white/30">
                     <img
-                      src={ethiopian_civil_service_commistion_logo}
-                      alt="Federal Civil Service Commission of Ethiopia"
+                      src={EaiiLogin}
+                      alt="Ethiopian Artificial Intelligence Institute"
                       className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto"
                     />
                   </div>
@@ -39,7 +40,7 @@ const ForgetPassword = () => {
                 {/* Institute Info */}
                 <div className="text-center mb-6 sm:mb-7 md:mb-8">
                   <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 leading-tight">
-                    Federal Civil Service Commission of Ethiopia
+                    Ethiopian Artificial Intelligence Institute
                   </h1>
                   <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-white/90 mb-1 sm:mb-2">
                     PROJECT MANAGEMENT SYSTEM
@@ -95,7 +96,7 @@ const ForgetPassword = () => {
                 {/* Learn More Button */}
                 <div className="text-center">
                   <a
-                    href="https://fcsc.ecsc.gov.et/"
+                    href="https://aii.et/"
                     className="inline-flex items-center px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-white/20 backdrop-blur-sm border border-white/30 text-white font-semibold rounded-lg hover:bg-white/30 transition-all duration-200 text-sm sm:text-base md:text-base transform hover:-translate-y-0.5"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -104,7 +105,7 @@ const ForgetPassword = () => {
                     <OpenInNew
                       style={{
                         fontSize: "clamp(14px, 1vw, 16px)",
-                        marginLeft: "clamp(4px, 0.5vw, 8px)"
+                        marginLeft: "clamp(4px, 0.5vw, 8px)",
                       }}
                     />
                   </a>
@@ -122,7 +123,7 @@ const ForgetPassword = () => {
         {/* Footer */}
         <div className="text-center mt-4 sm:mt-5 md:mt-6 px-2">
           <p className="text-black/70 text-xs sm:text-sm">
-            © 2025 Federal Civil Service Commission of Ethiopia. All rights
+            © 2025 Ethiopian Artificial Intelligence Institute. All rights
             reserved.
           </p>
         </div>

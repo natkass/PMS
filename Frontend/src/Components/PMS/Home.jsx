@@ -1,3 +1,4 @@
+import React, { useEffect, useState, useRef } from "react";
 import {
   Grid,
   InputAdornment,
@@ -20,8 +21,8 @@ import {
   Card,
   CardContent,
   alpha,
+  Chip,
 } from "@mui/material";
-import React, { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import "./Home.css";
 
@@ -41,7 +42,21 @@ import { PieChart } from "@mui/x-charts/PieChart";
 
 // Services
 import apiService from "../services/apiServices";
-import PropTypes from "prop-types";
+
+// Components
+import ExportControls from "./dashboard/ExportControls";
+import { DashboardStatCard } from "./dashboard/StatCard";
+
+// Utils
+import {
+  exportSectionToPDF,
+  exportToExcel,
+  exportToCSV,
+  prepareFullDashboardData,
+  prepareTasksData,
+  prepareProjectsData,
+  prepareUpcomingTasksData,
+} from "../utils/exportUtils";
 
 // Custom styled components
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -120,6 +135,14 @@ function Home() {
   const [onProgressProjects, setOnProgressProjects] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Refs for export
+  const dashboardRef = useRef(null);
+  const taskTableRef = useRef(null);
+  const projectsTableRef = useRef(null);
+  const upcomingTableRef = useRef(null);
+  const statsCardsRef = useRef(null);
+  const chartRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -401,170 +424,154 @@ function Home() {
     },
   ];
 
+  // Prepare data for exports
+  const dashboardStats = {
+    totalProjects,
+    completedProjects,
+    onProgressProjects,
+    totalSubtasks: totalSubtasksLength,
+    completedSubtasks: totalCompletedSubtasksLength,
+    inProgressSubtasks: totalInProgressSubtasksLength,
+    pendingSubtasks: totalPendingSubtasksLength,
+  };
+
+  const fullDashboardData = prepareFullDashboardData({
+    allSubTasks,
+    filteredProjects2: limitedSubTasks,
+    projectsAssigned,
+    stats: dashboardStats,
+  });
+
+  // Section specific data
+  const tasksData = prepareTasksData(allSubTasks);
+  const projectsData = prepareProjectsData(projectsAssigned);
+  const upcomingData = prepareUpcomingTasksData(limitedSubTasks);
+
+  // Dashboard refs for full export
+  const dashboardRefs = {
+    Stats_Cards: statsCardsRef,
+    Task_List: taskTableRef,
+    Upcoming_Deadlines: upcomingTableRef,
+    Projects_Assigned: projectsTableRef,
+    Task_Distribution: chartRef,
+  };
+
+  // Export handlers
+  const handleExportPDF = async (ref, name) => {
+    try {
+      await exportSectionToPDF(ref, name);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+    }
+  };
+
+  const handleExportExcel = (data, name) => {
+    try {
+      exportToExcel(data, name);
+    } catch (error) {
+      console.error("Error exporting Excel:", error);
+    }
+  };
+
+  const handleExportCSV = (data, name) => {
+    try {
+      exportToCSV(data, name);
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
 
   return (
-    <Box className="ml-auto w-full  mr-0 lg:mr-5 ">
+    <Box className="ml-auto w-full  mr-0 lg:mr-5 " ref={dashboardRef}>
       <Helmet>
         <title>PMS - Dashboard</title>
       </Helmet>
       <Container maxWidth="xl" sx={{ py: 3 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              color: "#0A5077",
-              mb: 1,
-            }}
-          >
-            Dashboard Overview
-          </Typography>
-          <Typography variant="body1" sx={{ color: "text.secondary" }}>
-            Welcome back! Here's what's happening with your projects today.
-          </Typography>
+        <Box
+          sx={{
+            mb: 4,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                color: "#0A5077",
+                mb: 1,
+              }}
+            >
+              Dashboard Overview
+            </Typography>
+            <Typography variant="body1" sx={{ color: "text.secondary" }}>
+              Welcome back! Here's what's happening with your projects today.
+            </Typography>
+          </Box>
         </Box>
 
         {/* Stats Cards */}
-        <Grid container spacing={3} sx={{ mb: 6 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                      color: theme.palette.primary.main,
-                      mr: 2,
-                    }}
-                  >
-                    <ListAltIcon />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Projects Assigned
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {totalProjects}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <TrendingUpIcon
-                    sx={{ color: "success.main", fontSize: 16 }}
-                  />
-                  <Typography variant="caption" color="success.main">
-                    Active projects
-                  </Typography>
-                </Box>
-              </CardContent>
-            </StatCard>
-          </Grid>
+        <Box ref={statsCardsRef}>
+          <Grid container spacing={3} sx={{ mb: 6 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <DashboardStatCard
+                title="Projects Assigned"
+                value={totalProjects}
+                icon={ListAltIcon}
+                color={theme.palette.primary.main}
+                trendText="Active projects"
+                trendIcon={TrendingUpIcon}
+                theme={theme}
+              />
+            </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.success.main, 0.1),
-                      color: theme.palette.success.main,
-                      mr: 2,
-                    }}
-                  >
-                    <ChecklistIcon />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Projects Completed
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {completedProjects}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  {totalProjects > 0
+            <Grid item xs={12} sm={6} md={3}>
+              <DashboardStatCard
+                title="Projects Completed"
+                value={completedProjects}
+                icon={ChecklistIcon}
+                color={theme.palette.success.main}
+                trendText={`${
+                  totalProjects > 0
                     ? `${Math.round(
                         (completedProjects / totalProjects) * 100
                       )}% completion rate`
-                    : "No projects"}
-                </Typography>
-              </CardContent>
-            </StatCard>
-          </Grid>
+                    : "No projects"
+                }`}
+                theme={theme}
+              />
+            </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.warning.main, 0.1),
-                      color: theme.palette.warning.main,
-                      mr: 2,
-                    }}
-                  >
-                    <HistoryToggleOffIcon />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Projects In Progress
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {onProgressProjects}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  Actively being worked on
-                </Typography>
-              </CardContent>
-            </StatCard>
-          </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <DashboardStatCard
+                title="Projects In Progress"
+                value={onProgressProjects}
+                icon={HistoryToggleOffIcon}
+                color={theme.palette.warning.main}
+                trendText="Actively being worked on"
+                theme={theme}
+              />
+            </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.info.main, 0.1),
-                      color: theme.palette.info.main,
-                      mr: 2,
-                    }}
-                  >
-                    <TaskIcon />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Tasks
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {totalSubtasksLength}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Typography variant="caption" color="success.main">
-                    {totalCompletedSubtasksLength} completed
-                  </Typography>
-                </Box>
-              </CardContent>
-            </StatCard>
+            <Grid item xs={12} sm={6} md={3}>
+              <DashboardStatCard
+                title="Total Tasks"
+                value={totalSubtasksLength}
+                icon={TaskIcon}
+                color={theme.palette.info.main}
+                trendText={`${totalCompletedSubtasksLength} completed`}
+                theme={theme}
+              />
+            </Grid>
           </Grid>
-        </Grid>
+        </Box>
 
         {/* Task List Section */}
         <Paper
@@ -575,41 +582,51 @@ function Home() {
             mb: 4,
             border: `1px solid ${theme.palette.divider}`,
           }}
+          ref={taskTableRef}
         >
           <Box
             sx={{
               p: 3,
               bgcolor: "background.default",
               borderBottom: `1px solid ${theme.palette.divider}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            <Grid container alignItems="center" justifyContent="space-between">
-              <Grid item>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Task List
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Manage and track your assigned tasks
-                </Typography>
-              </Grid>
-              <Grid item>
-                <TextField
-                  size="small"
-                  placeholder="Search tasks..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    sx: { borderRadius: 2 },
-                  }}
-                  sx={{ minWidth: 250 }}
-                />
-              </Grid>
-            </Grid>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Task List
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage and track your assigned tasks
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <TextField
+                size="small"
+                placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: 2 },
+                }}
+                sx={{ minWidth: 250 }}
+              />
+              <ExportControls
+                sectionName="Task List"
+                sectionRef={taskTableRef}
+                sectionData={tasksData}
+                sectionType="tasks"
+                variant="chip"
+                size="small"
+              />
+            </Box>
           </Box>
 
           <TableContainer>
@@ -780,27 +797,46 @@ function Home() {
                 borderRadius: 3,
                 border: `1px solid ${theme.palette.divider}`,
               }}
+              ref={upcomingTableRef}
             >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    bgcolor: theme.palette.warning.light,
-                    color: theme.palette.warning.main,
-                    mr: 2,
-                  }}
-                >
-                  <CalendarTodayIcon />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      bgcolor: theme.palette.warning.light,
+                      color: theme.palette.warning.main,
+                      mr: 2,
+                    }}
+                  >
+                    <CalendarTodayIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Upcoming Deadlines
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Tasks due in the next 15 days
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Upcoming Deadlines
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tasks due in the next 15 days
-                  </Typography>
-                </Box>
+
+                <ExportControls
+                  sectionName="Upcoming Deadlines"
+                  sectionRef={upcomingTableRef}
+                  sectionData={upcomingData}
+                  sectionType="upcoming"
+                  variant="chip"
+                  size="small"
+                />
               </Box>
 
               <TableContainer>
@@ -869,6 +905,7 @@ function Home() {
                 display: "flex",
                 flexDirection: "column",
               }}
+              ref={chartRef}
             >
               <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
                 <Box
@@ -970,20 +1007,34 @@ function Home() {
             border: `1px solid ${theme.palette.divider}`,
             overflow: "hidden",
           }}
+          ref={projectsTableRef}
         >
           <Box
             sx={{
               p: 3,
               bgcolor: "background.default",
               borderBottom: `1px solid ${theme.palette.divider}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Projects Assigned to You
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Overview of all projects under your responsibility
-            </Typography>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Projects Assigned to You
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Overview of all projects under your responsibility
+              </Typography>
+            </Box>
+
+            <ExportControls
+              sectionName="Projects"
+              sectionRef={projectsTableRef}
+              sectionData={projectsData}
+              sectionType="projects"
+              variant="chip"
+            />
           </Box>
 
           <TableContainer>

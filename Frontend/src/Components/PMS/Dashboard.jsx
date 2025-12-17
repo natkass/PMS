@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import Backdrop from "@mui/material/Backdrop";
 import { BarChart } from "@mui/x-charts/BarChart";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import ClipLoader from "react-spinners/ClipLoader";
 import apiService from "../services/apiServices";
@@ -35,6 +35,16 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 // Charts
 import { PieChart } from "@mui/x-charts/PieChart";
 import { styled } from "@mui/material/styles";
+
+// Export Components
+import ExportControls from "./dashboard/ExportControls";
+import {
+  exportToPDF,
+  exportToExcel,
+  exportToCSV,
+  prepareProjectDashboardData,
+  prepareTasksData,
+} from "../utils/exportUtils";
 
 // Styled Components
 const StatCard = styled(Card)(({ theme }) => ({
@@ -85,6 +95,13 @@ const Dashboard = (props) => {
   const [onProgressTasks, setOnProgressTasks] = useState([]);
   const [pendingTask, setPendingTasks] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Refs for export
+  const dashboardRef = useRef(null);
+  const taskOverviewRef = useRef(null);
+  const milestoneChartRef = useRef(null);
+  const distributionChartRef = useRef(null);
+  const statsCardsRef = useRef(null);
 
   const fetchActivities = async () => {
     try {
@@ -250,8 +267,49 @@ const Dashboard = (props) => {
     };
   });
 
+  // Prepare data for exports
+  const dashboardStats = {
+    activityLength,
+    totalTasks,
+    totalSubTasks,
+    completedTasks: completedTasks.length,
+    onProgressTasks: onProgressTasks.length,
+    pendingTasks: pendingTask.length,
+    completionRate:
+      totalTasks > 0
+        ? Math.round((completedTasks.length / totalTasks) * 100)
+        : 0,
+  };
+
+  const fullDashboardData = prepareProjectDashboardData({
+    activities,
+    tasks,
+    stats: dashboardStats,
+    projectInfo: props.setSelectedProjectInfo,
+  });
+
+  // Section specific data
+  const tasksData = prepareTasksData(tasks);
+  const upcomingData = prepareTasksData(
+    tasks.filter((task) => {
+      if (!task.end_date) return false;
+      const dueDate = new Date(task.end_date);
+      const today = new Date();
+      const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+      return daysUntilDue > 0 && daysUntilDue <= 30;
+    })
+  );
+
+  // Dashboard refs for full export
+  const dashboardRefs = {
+    Stats_Cards: statsCardsRef,
+    Task_Overview: taskOverviewRef,
+    Milestone_Progress: milestoneChartRef,
+    Task_Distribution: distributionChartRef,
+  };
+
   return (
-    <Box className=" w-full mr-0 lg:mr-5 mt-5 lg:mt-6">
+    <Box className=" w-full mr-0 lg:mr-5 mt-5 lg:mt-6" ref={dashboardRef}>
       <Helmet>
         <title>{props.setSelectedProjectInfo.name} - Dashboard</title>
       </Helmet>
@@ -274,162 +332,183 @@ const Dashboard = (props) => {
 
       <Container maxWidth="xl" sx={{ pb: 6 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              color: "#082f49",
-              mb: 1,
-            }}
-          >
-            {props.setSelectedProjectInfo.name}
-          </Typography>
-          <Typography variant="body1" sx={{ color: "text.secondary" }}>
-            Project Overview & Analytics Dashboard
-          </Typography>
+        <Box
+          sx={{
+            mb: 4,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                color: "#082f49",
+                mb: 1,
+              }}
+            >
+              {props.setSelectedProjectInfo.name}
+            </Typography>
+            <Typography variant="body1" sx={{ color: "text.secondary" }}>
+              Project Overview & Analytics Dashboard
+            </Typography>
+          </Box>
+
+          <ExportControls
+            sectionName="Project Dashboard"
+            sectionRef={dashboardRef}
+            sectionData={fullDashboardData}
+            dashboardRefs={dashboardRefs}
+            fullDashboardData={fullDashboardData}
+            showFullExport={true}
+            variant="group"
+          />
         </Box>
 
         {/* Stats Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                      color: theme.palette.primary.main,
-                      mr: 2,
-                    }}
-                  >
-                    <ActivityIcon />
+        <Box ref={statsCardsRef}>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                        color: theme.palette.primary.main,
+                        mr: 2,
+                      }}
+                    >
+                      <ActivityIcon />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Activities
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                        {activityLength}
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Activities
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {activityLength}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  Active project milestones
-                </Typography>
-              </CardContent>
-            </StatCard>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.success.main, 0.1),
-                      color: theme.palette.success.main,
-                      mr: 2,
-                    }}
-                  >
-                    <TaskIcon />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Tasks
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {totalTasks}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <TrendingUpIcon
-                    sx={{ color: "success.main", fontSize: 16 }}
-                  />
-                  <Typography variant="caption" color="success.main">
-                    {completedTasks.length} completed
-                  </Typography>
-                </Box>
-              </CardContent>
-            </StatCard>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.info.main, 0.1),
-                      color: theme.palette.info.main,
-                      mr: 2,
-                    }}
-                  >
-                    <SubTaskIcon />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Sub Tasks
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {totalSubTasks}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="text.secondary">
-                  Detailed task breakdown
-                </Typography>
-              </CardContent>
-            </StatCard>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                  <Box
-                    sx={{
-                      p: 1.5,
-                      borderRadius: 2,
-                      backgroundColor: alpha(theme.palette.warning.main, 0.1),
-                      color: theme.palette.warning.main,
-                      mr: 2,
-                    }}
-                  >
-                    <ScheduleIcon />
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" color="text.secondary">
-                      In Progress
-                    </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                      {onProgressTasks.length}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="caption" color="text.secondary">
-                    Completion Rate:
+                    Active project milestones
                   </Typography>
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>
-                    {totalTasks > 0
-                      ? `${Math.round(
-                          (completedTasks.length / totalTasks) * 100
-                        )}%`
-                      : "0%"}
+                </CardContent>
+              </StatCard>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: alpha(theme.palette.success.main, 0.1),
+                        color: theme.palette.success.main,
+                        mr: 2,
+                      }}
+                    >
+                      <TaskIcon />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Tasks
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                        {totalTasks}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <TrendingUpIcon
+                      sx={{ color: "success.main", fontSize: 16 }}
+                    />
+                    <Typography variant="caption" color="success.main">
+                      {completedTasks.length} completed
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </StatCard>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: alpha(theme.palette.info.main, 0.1),
+                        color: theme.palette.info.main,
+                        mr: 2,
+                      }}
+                    >
+                      <SubTaskIcon />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Sub Tasks
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                        {totalSubTasks}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Detailed task breakdown
                   </Typography>
-                </Box>
-              </CardContent>
-            </StatCard>
+                </CardContent>
+              </StatCard>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard>
+                <CardContent sx={{ p: 3 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2,
+                        backgroundColor: alpha(theme.palette.warning.main, 0.1),
+                        color: theme.palette.warning.main,
+                        mr: 2,
+                      }}
+                    >
+                      <ScheduleIcon />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        In Progress
+                      </Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                        {onProgressTasks.length}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Completion Rate:
+                    </Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                      {totalTasks > 0
+                        ? `${Math.round(
+                            (completedTasks.length / totalTasks) * 100
+                          )}%`
+                        : "0%"}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </StatCard>
+            </Grid>
           </Grid>
-        </Grid>
+        </Box>
 
         {/* Task Overview Section */}
         <Paper
@@ -440,45 +519,52 @@ const Dashboard = (props) => {
             border: `1px solid ${theme.palette.divider}`,
             overflow: "hidden",
           }}
+          ref={taskOverviewRef}
         >
           <Box
             sx={{
               p: 3,
               backgroundColor: "background.paper",
               borderBottom: `1px solid ${theme.palette.divider}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
-            <Grid
-              container
-              alignItems="center"
-              justifyContent="space-between"
-              spacing={2}
-            >
-              <Grid item>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Task Overview
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Monitor and manage all project tasks
-                </Typography>
-              </Grid>
-              <Grid item>
-                <TextField
-                  size="small"
-                  placeholder="Search tasks..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon color="action" />
-                      </InputAdornment>
-                    ),
-                    sx: { borderRadius: 2, minWidth: 250 },
-                  }}
-                />
-              </Grid>
-            </Grid>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Task Overview
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Monitor and manage all project tasks
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <TextField
+                size="small"
+                placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: 2, minWidth: 250 },
+                }}
+              />
+
+              <ExportControls
+                sectionName="Task Overview"
+                sectionRef={taskOverviewRef}
+                sectionData={tasksData}
+                sectionType="tasks"
+                variant="chip"
+                size="small"
+              />
+            </Box>
           </Box>
 
           <Box sx={{ p: 3 }}>
@@ -872,27 +958,46 @@ const Dashboard = (props) => {
                 height: "100%",
                 border: `1px solid ${theme.palette.divider}`,
               }}
+              ref={milestoneChartRef}
             >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.main,
-                    mr: 2,
-                  }}
-                >
-                  <TimelineIcon />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      color: theme.palette.primary.main,
+                      mr: 2,
+                    }}
+                  >
+                    <TimelineIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Milestone Progress
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Track milestone completion rates
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Milestone Progress
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Track milestone completion rates
-                  </Typography>
-                </Box>
+
+                <ExportControls
+                  sectionName="Milestone Progress"
+                  sectionRef={milestoneChartRef}
+                  sectionData={barChartData}
+                  sectionType="milestones"
+                  variant="chip"
+                  size="small"
+                />
               </Box>
 
               {activities.length > 0 ? (
@@ -957,27 +1062,46 @@ const Dashboard = (props) => {
                 height: "100%",
                 border: `1px solid ${theme.palette.divider}`,
               }}
+              ref={distributionChartRef}
             >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: alpha(theme.palette.info.main, 0.1),
-                    color: theme.palette.info.main,
-                    mr: 2,
-                  }}
-                >
-                  <PieChartIcon />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      backgroundColor: alpha(theme.palette.info.main, 0.1),
+                      color: theme.palette.info.main,
+                      mr: 2,
+                    }}
+                  >
+                    <PieChartIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Task Distribution
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Overview by status
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Task Distribution
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Overview by status
-                  </Typography>
-                </Box>
+
+                <ExportControls
+                  sectionName="Task Distribution"
+                  sectionRef={distributionChartRef}
+                  sectionData={chartData}
+                  sectionType="distribution"
+                  variant="chip"
+                  size="small"
+                />
               </Box>
 
               {tasks.length > 0 ? (

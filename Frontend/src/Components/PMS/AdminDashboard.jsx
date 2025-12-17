@@ -14,7 +14,6 @@ import {
   useTheme,
   CardHeader,
   Avatar,
-  IconButton,
   MenuItem,
   Select,
   FormControl,
@@ -22,7 +21,7 @@ import {
 } from "@mui/material";
 import Backdrop from "@mui/material/Backdrop";
 import { BarChart } from "@mui/x-charts/BarChart";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import ClipLoader from "react-spinners/ClipLoader";
 import apiService from "../services/apiServices";
@@ -39,7 +38,6 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import PeopleIcon from "@mui/icons-material/People";
 import PieChartIcon from "@mui/icons-material/PieChart";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
 // Charts
@@ -55,6 +53,17 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Pagination from "@mui/material/Pagination";
 import { tableCellClasses } from "@mui/material/TableCell";
+
+// Export Components
+import ExportControls from "./dashboard/ExportControls";
+import {
+  exportToPDF,
+  exportToExcel,
+  exportToCSV,
+  prepareAdminDashboardData,
+  exportAdminDashboardToExcel,
+  exportAdminProjectsToCSV,
+} from "../utils/exportUtils";
 
 // Styled Components
 const StatCard = styled(Card)(({ theme }) => ({
@@ -138,6 +147,41 @@ const AdminDashboard = (props) => {
     return JSON.parse(localStorage.getItem("userInfo")) || [];
   });
 
+  // Refs for export
+  const dashboardRef = useRef(null);
+  const projectsTableRef = useRef(null);
+  const milestoneChartRef = useRef(null);
+  const projectStatsChartRef = useRef(null);
+  const statsCardsRef = useRef(null);
+
+  // Helper function to get manager names
+  const getManagerNames = (managers) => {
+    if (!managers || !Array.isArray(managers)) return "N/A";
+
+    const names = managers
+      .filter((manager) => manager && manager.UserRoleToUser)
+      .map((manager) => manager.UserRoleToUser.full_name || "Unnamed Manager")
+      .filter((name) => name !== "Unnamed Manager");
+
+    return names.length > 0 ? names.join(", ") : "N/A";
+  };
+
+  // Helper function to format budget
+  const formatBudget = (budget) => {
+    if (budget == null || isNaN(budget)) {
+      return "N/A";
+    }
+
+    if (budget >= 1000000000) {
+      const billions = budget / 1000000000;
+      return `${(Math.round(billions * 100) / 100).toFixed(2)}B`;
+    } else if (budget >= 1000000) {
+      const millions = budget / 1000000;
+      return `${(Math.round(millions * 100) / 100).toFixed(2)}M`;
+    }
+    return budget.toLocaleString();
+  };
+
   const fetchProjects = async () => {
     try {
       setLoading(true);
@@ -217,21 +261,6 @@ const AdminDashboard = (props) => {
     }
   };
 
-  const formatBudget = (budget) => {
-    if (budget == null || isNaN(budget)) {
-      return "N/A";
-    }
-
-    if (budget >= 1000000000) {
-      const billions = budget / 1000000000;
-      return `${(Math.round(billions * 100) / 100).toFixed(2)}B`;
-    } else if (budget >= 1000000) {
-      const millions = budget / 1000000;
-      return `${(Math.round(millions * 100) / 100).toFixed(2)}M`;
-    }
-    return budget.toLocaleString();
-  };
-
   const getInitialsColor = (char) => {
     const colors = [
       theme.palette.primary.main,
@@ -243,21 +272,6 @@ const AdminDashboard = (props) => {
     ];
     const index = char.toLowerCase().charCodeAt(0) % colors.length;
     return colors[index];
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Completed":
-        return theme.palette.success.main;
-      case "On Progress":
-        return theme.palette.warning.main;
-      case "Pending":
-        return theme.palette.info.main;
-      case "Canceled":
-        return theme.palette.error.main;
-      default:
-        return theme.palette.grey[500];
-    }
   };
 
   const getStatusChip = (status) => {
@@ -404,8 +418,138 @@ const AdminDashboard = (props) => {
     },
   ];
 
+  // Prepare data for exports
+  const dashboardStats = {
+    totalProjects,
+    completedProjects,
+    onProgressProjects,
+    pendingProjects,
+    completionRate:
+      totalProjects > 0
+        ? Math.round((completedProjects / totalProjects) * 100)
+        : 0,
+  };
+
+  // Calculate total and average budget
+  const totalBudget = filteredRows.reduce((sum, project) => {
+    const budget = parseFloat(project.budget) || 0;
+    return sum + budget;
+  }, 0);
+
+  const avgBudget =
+    filteredRows.length > 0 ? totalBudget / filteredRows.length : 0;
+
+  // Calculate budget by status
+  const budgetByStatus = {
+    completed: filteredRows
+      .filter((p) => p.overall_progress === "Completed")
+      .reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0),
+    inProgress: filteredRows
+      .filter((p) => p.overall_progress === "On Progress")
+      .reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0),
+    pending: filteredRows
+      .filter((p) => p.overall_progress === "Pending")
+      .reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0),
+  };
+
+  const fullDashboardData = {
+    projects: filteredRows,
+    stats: dashboardStats,
+    totalBudget,
+    avgBudget,
+    budgetByStatus,
+    projectManagers,
+    userInfo: userInfo.foundUser,
+    selectedProject: selectedProject2,
+    filteredActivities,
+    formatBudget,
+    getManagerNames,
+  };
+
+  // Prepare projects data with manager and budget
+  const projectsData = filteredRows.map((project, index) => ({
+    "Project Name": project.name || "",
+    "Project ID": project.project_id?.slice(0, 8) + "..." || "",
+    "Start Date": project.start_date
+      ? new Date(project.start_date).toLocaleDateString()
+      : "",
+    "End Date": project.end_date
+      ? new Date(project.end_date).toLocaleDateString()
+      : "",
+    "Budget (ETB)": project.budget ? formatBudget(project.budget) : "N/A",
+    "Budget (Numeric)": parseFloat(project.budget) || 0,
+    Manager: getManagerNames(project.project_manager),
+    Department: project.division?.name || "N/A",
+    Status: project.overall_progress || "",
+    "Duration (Days)":
+      project.start_date && project.end_date
+        ? Math.ceil(
+            (new Date(project.end_date) - new Date(project.start_date)) /
+              (1000 * 60 * 60 * 24)
+          )
+        : 0,
+  }));
+
+  // Prepare milestone data
+  const milestoneData = filteredActivities.map((activity, index) => {
+    const calculateProgress = (startDate, endDate) => {
+      if (!startDate || !endDate) return 0;
+      const currentDate = new Date();
+      const totalDuration = new Date(endDate) - new Date(startDate);
+      const elapsedDuration = currentDate - new Date(startDate);
+      const progress = Math.min(
+        Math.max((elapsedDuration / totalDuration) * 100, 0),
+        100
+      );
+      return progress.toFixed(1);
+    };
+
+    return {
+      "Milestone Name": activity.name || "",
+      "Start Date": activity.start_date
+        ? new Date(activity.start_date).toLocaleDateString()
+        : "",
+      "End Date": activity.end_date
+        ? new Date(activity.end_date).toLocaleDateString()
+        : "",
+      Status: activity.status || "",
+      Progress: `${calculateProgress(activity.start_date, activity.end_date)}%`,
+      "Is Milestone": activity.is_milestone ? "Yes" : "No",
+    };
+  });
+
+  // Prepare statistics data
+  const statisticsData = [
+    ...chartData.map((item) => ({
+      ...item,
+      Percentage: `${
+        totalProjects > 0 ? Math.round((item.value / totalProjects) * 100) : 0
+      }%`,
+      "Budget (ETB)": formatBudget(
+        budgetByStatus[item.label.toLowerCase().replace(" ", "")] || 0
+      ),
+      "Budget %":
+        totalBudget > 0
+          ? `${Math.round(
+              ((budgetByStatus[item.label.toLowerCase().replace(" ", "")] ||
+                0) /
+                totalBudget) *
+                100
+            )}%`
+          : "0%",
+    })),
+  ];
+
+  // Dashboard refs for full export
+  const dashboardRefs = {
+    Stats_Cards: statsCardsRef,
+    All_Projects: projectsTableRef,
+    Milestone_Progress: milestoneChartRef,
+    Project_Statistics: projectStatsChartRef,
+  };
+
   return (
-    <Box className="ml-auto w-full  mt-6 mr-0 lg:mr-5 ">
+    <Box className="ml-auto w-full  mt-6 mr-0 lg:mr-5 " ref={dashboardRef}>
       <Helmet>
         <title>Admin Dashboard - Project Management System</title>
       </Helmet>
@@ -428,66 +572,87 @@ const AdminDashboard = (props) => {
 
       <Container maxWidth="xl" sx={{ pb: 6 }}>
         {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              color: "#0A5077",
-              mb: 1,
-            }}
-          >
-            Admin Dashboard
-          </Typography>
-          <Typography variant="body1" sx={{ color: "text.secondary" }}>
-            Overview of all projects and team performance
-          </Typography>
+        <Box
+          sx={{
+            mb: 4,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+          }}
+        >
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                color: "#0A5077",
+                mb: 1,
+              }}
+            >
+              Admin Dashboard
+            </Typography>
+            <Typography variant="body1" sx={{ color: "text.secondary" }}>
+              Overview of all projects and team performance
+            </Typography>
+          </Box>
+
+          <ExportControls
+            sectionName="Admin Dashboard"
+            sectionRef={dashboardRef}
+            sectionData={fullDashboardData}
+            dashboardRefs={dashboardRefs}
+            fullDashboardData={fullDashboardData}
+            sectionType="admin"
+            showFullExport={true}
+            variant="group"
+          />
         </Box>
 
         {/* Stats Cards */}
-        <Grid container spacing={3} sx={{ mb: 6 }}>
-          {statsCards.map((stat, index) => (
-            <Grid item xs={12} sm={6} md={3} key={index}>
-              <StatCard
-                sx={{
-                  "&::before": {
-                    background: `linear-gradient(90deg, ${stat.color}, ${alpha(
-                      stat.color,
-                      0.7
-                    )})`,
-                  },
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        backgroundColor: alpha(stat.color, 0.1),
-                        color: stat.color,
-                        mr: 2,
-                      }}
-                    >
-                      {stat.icon}
+        <Box ref={statsCardsRef}>
+          <Grid container spacing={3} sx={{ mb: 6 }}>
+            {statsCards.map((stat, index) => (
+              <Grid item xs={12} sm={6} md={3} key={index}>
+                <StatCard
+                  sx={{
+                    "&::before": {
+                      background: `linear-gradient(90deg, ${
+                        stat.color
+                      }, ${alpha(stat.color, 0.7)})`,
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                      <Box
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          backgroundColor: alpha(stat.color, 0.1),
+                          color: stat.color,
+                          mr: 2,
+                        }}
+                      >
+                        {stat.icon}
+                      </Box>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {stat.title}
+                        </Typography>
+                        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                          {stat.value}
+                        </Typography>
+                      </Box>
                     </Box>
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        {stat.title}
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        {stat.value}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    {stat.subtitle}
-                  </Typography>
-                </CardContent>
-              </StatCard>
-            </Grid>
-          ))}
-        </Grid>
+                    <Typography variant="caption" color="text.secondary">
+                      {stat.subtitle}
+                    </Typography>
+                  </CardContent>
+                </StatCard>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
 
         {/* Projects Table */}
         <Paper
@@ -498,59 +663,72 @@ const AdminDashboard = (props) => {
             border: `1px solid ${theme.palette.divider}`,
             overflow: "hidden",
           }}
+          ref={projectsTableRef}
         >
           <Box
             sx={{
               p: 3,
               backgroundColor: "background.paper",
               borderBottom: `1px solid ${theme.palette.divider}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 2,
             }}
           >
-            <Grid
-              container
-              alignItems="center"
-              justifyContent="space-between"
-              spacing={2}
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                All Projects
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage and monitor all projects
+              </Typography>
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
             >
-              <Grid item>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  All Projects
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Manage and monitor all projects
-                </Typography>
-              </Grid>
-              <Grid item>
-                <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                  <TextField
-                    size="small"
-                    placeholder="Search projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon color="action" />
-                        </InputAdornment>
-                      ),
-                      sx: { borderRadius: 2, minWidth: 250 },
-                    }}
-                  />
-                  <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Rows</InputLabel>
-                    <Select
-                      value={rowsPerPage}
-                      onChange={handleRowsPerPageChange}
-                      label="Rows"
-                    >
-                      <MenuItem value={5}>5</MenuItem>
-                      <MenuItem value={10}>10</MenuItem>
-                      <MenuItem value={25}>25</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Grid>
-            </Grid>
+              <TextField
+                size="small"
+                placeholder="Search projects..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: 2, minWidth: 250 },
+                }}
+              />
+              <FormControl size="small" sx={{ minWidth: 120 }}>
+                <InputLabel>Rows</InputLabel>
+                <Select
+                  value={rowsPerPage}
+                  onChange={handleRowsPerPageChange}
+                  label="Rows"
+                >
+                  <MenuItem value={5}>5</MenuItem>
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={25}>25</MenuItem>
+                </Select>
+              </FormControl>
+
+              <ExportControls
+                sectionName="All Projects"
+                sectionRef={projectsTableRef}
+                sectionData={projectsData}
+                sectionType="projects"
+                variant="chip"
+                size="small"
+              />
+            </Box>
           </Box>
 
           <TableContainer>
@@ -610,17 +788,29 @@ const AdminDashboard = (props) => {
                       </StyledTableCell>
                       <StyledTableCell>
                         <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <AttachMoneyIcon
+                            sx={{
+                              fontSize: 16,
+                              mr: 0.5,
+                              color: "success.main",
+                            }}
+                          />
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             {formatBudget(project.budget)} ETB
                           </Typography>
                         </Box>
                       </StyledTableCell>
                       <StyledTableCell>
-                        {projectManagers[index]?.map((user, idx) => (
-                          <Typography key={idx} variant="body2">
-                            {user.UserRoleToUser?.full_name}
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                        >
+                          <PeopleIcon
+                            sx={{ fontSize: 16, color: "action.active" }}
+                          />
+                          <Typography variant="body2">
+                            {getManagerNames(project.project_manager)}
                           </Typography>
-                        ))}
+                        </Box>
                       </StyledTableCell>
                       <StyledTableCell>
                         <Typography variant="body2">
@@ -657,11 +847,20 @@ const AdminDashboard = (props) => {
                 gap: 2,
               }}
             >
-              <Typography variant="body2" color="text.secondary">
-                Showing {indexOfFirstItem + 1}-
-                {Math.min(indexOfLastItem, filteredRows.length)} of{" "}
-                {filteredRows.length} projects
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Showing {indexOfFirstItem + 1}-
+                  {Math.min(indexOfLastItem, filteredRows.length)} of{" "}
+                  {filteredRows.length} projects
+                </Typography>
+                <Chip
+                  size="small"
+                  icon={<AttachMoneyIcon />}
+                  label={`Total Budget: ${formatBudget(totalBudget)} ETB`}
+                  color="success"
+                  variant="outlined"
+                />
+              </Box>
               <Pagination
                 count={pageCount}
                 page={currentPage}
@@ -687,52 +886,76 @@ const AdminDashboard = (props) => {
                 height: "100%",
                 border: `1px solid ${theme.palette.divider}`,
               }}
+              ref={milestoneChartRef}
             >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.primary.main,
-                    mr: 2,
-                  }}
-                >
-                  <TimelineIcon />
-                </Box>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Milestone Progress
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Track milestone completion by project
-                  </Typography>
-                </Box>
-                <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <Select
-                    value={selectedProject2 || ""}
-                    onChange={handleProjectChange}
-                    displayEmpty
-                    renderValue={(selected) => {
-                      if (!selected) {
-                        return <em>Select a project</em>;
-                      }
-                      const project = projects2.find(
-                        (p) => p.project_id === selected
-                      );
-                      return project?.name || selected;
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 3,
+                  flexWrap: "wrap",
+                  gap: 2,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                      color: theme.palette.primary.main,
+                      mr: 2,
                     }}
                   >
-                    <MenuItem value="">
-                      <em>Select a project</em>
-                    </MenuItem>
-                    {dropdownOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
+                    <TimelineIcon />
+                  </Box>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Milestone Progress
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Track milestone completion by project
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  <FormControl size="small" sx={{ minWidth: 200 }}>
+                    <Select
+                      value={selectedProject2 || ""}
+                      onChange={handleProjectChange}
+                      displayEmpty
+                      renderValue={(selected) => {
+                        if (!selected) {
+                          return <em>Select a project</em>;
+                        }
+                        const project = projects2.find(
+                          (p) => p.project_id === selected
+                        );
+                        return project?.name || selected;
+                      }}
+                    >
+                      <MenuItem value="">
+                        <em>Select a project</em>
                       </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                      {dropdownOptions.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <ExportControls
+                    sectionName="Milestone Progress"
+                    sectionRef={milestoneChartRef}
+                    sectionData={milestoneData}
+                    sectionType="milestones"
+                    variant="chip"
+                    size="small"
+                  />
+                </Box>
               </Box>
 
               {selectedProject2 && filteredActivities.length > 0 ? (
@@ -820,27 +1043,46 @@ const AdminDashboard = (props) => {
                 height: "100%",
                 border: `1px solid ${theme.palette.divider}`,
               }}
+              ref={projectStatsChartRef}
             >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Box
-                  sx={{
-                    p: 1,
-                    borderRadius: 2,
-                    backgroundColor: alpha(theme.palette.info.main, 0.1),
-                    color: theme.palette.info.main,
-                    mr: 2,
-                  }}
-                >
-                  <PieChartIcon />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: 3,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      p: 1,
+                      borderRadius: 2,
+                      backgroundColor: alpha(theme.palette.info.main, 0.1),
+                      color: theme.palette.info.main,
+                      mr: 2,
+                    }}
+                  >
+                    <PieChartIcon />
+                  </Box>
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      Project Statistics
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Distribution by status
+                    </Typography>
+                  </Box>
                 </Box>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Project Statistics
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Distribution by status
-                  </Typography>
-                </Box>
+
+                <ExportControls
+                  sectionName="Project Statistics"
+                  sectionRef={projectStatsChartRef}
+                  sectionData={statisticsData}
+                  sectionType="statistics"
+                  variant="chip"
+                  size="small"
+                />
               </Box>
 
               {totalProjects > 0 ? (
@@ -900,9 +1142,25 @@ const AdminDashboard = (props) => {
                               backgroundColor: item.color,
                             }}
                           />
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {item.label}
-                          </Typography>
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontWeight: 500 }}
+                            >
+                              {item.label}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {formatBudget(
+                                budgetByStatus[
+                                  item.label.toLowerCase().replace(" ", "")
+                                ] || 0
+                              )}{" "}
+                              ETB
+                            </Typography>
+                          </Box>
                         </Box>
                         <Box
                           sx={{ display: "flex", alignItems: "center", gap: 1 }}

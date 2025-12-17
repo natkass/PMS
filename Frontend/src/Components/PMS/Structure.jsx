@@ -24,6 +24,7 @@ import Organizationaluniteditt from "./Organizationaluniteditt.jsx";
 import SectorAdd from "./SectorAdd.jsx";
 import SectorEdit from "./SectorEdit.jsx";
 import Sectordelete from "./Sectordelete.jsx";
+
 const useStyles = makeStyles({
   "@global": {
     ".MuiTreeItem-root.Mui-selected > .MuiTreeItem-content .MuiTreeItem-label":
@@ -36,6 +37,7 @@ const useStyles = makeStyles({
       },
   },
 });
+
 const Structure = (props) => {
   const [formData, setFormData] = useState({
     subtask_status: "",
@@ -93,7 +95,7 @@ const Structure = (props) => {
   const [assignmembertodepartment, setAssignmembertodepartment] = useState(0);
   const [addprojecttodepartment, setAddprojecttodepartment] = useState(0);
   const [addprojecttodepartmentOpen, setAddProjecttodepartmentOpen] =
-    useState(0);
+    useState(false);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [addSectorModalOpen, setAddSectorModalOpen] = useState(false);
@@ -120,6 +122,7 @@ const Structure = (props) => {
 
   const [selectedSectorId, setSelectedSectorId] = useState(null);
   const modalRef = useRef(null);
+
   const handleToggle = (itemId) => {
     setExpandedItems((prevExpanded) => {
       if (prevExpanded.includes(itemId)) {
@@ -545,376 +548,398 @@ const Structure = (props) => {
   const classes = useStyles();
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4 md:p-6">
       <Helmet>
         <title>PMS - Organizational Structure</title>
       </Helmet>
-      <div className=" border-x-4 border-y-4 pb-6 mb-16 ml-auto mt-6 mr-6 overflow-x-auto no-scrollbar">
+
+      <div className=" mx-auto">
         <Backdrop
           sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
           open={loading}
+          className="backdrop-blur-sm"
         >
-          <PuffLoader color="#fff" />
+          <PuffLoader color="#3b82f6" size={60} />
         </Backdrop>
-        <div className="flex flex-wrap gap-3 px-5 py-5 ">
-          <div className="flex flex-col justify-center text-3xl font-semibold text-white whitespace-nowrap">
-            <div className="justify-center items-center px-3 py-1 bg-blue-900 rounded">
-              {structureName.charAt(0).toUpperCase()}
-            </div>
-          </div>
-          <div className="flex-auto my-auto text-xl font-medium text-blue-950">
-            {structureName}
-          </div>
-        </div>
 
-        {/* <div>
-        <div className="flex flex-wrap gap-6 items-center mb-4">
-          <div className="flex flex-row relative ">
-            <div class=" self-center ">
-              <TextField
-                type="text"
-                placeholder="Search by Name"
-                size="small"
-                class="bg-white rounded-lg"
-                variant="outlined"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
-              />
+        {/* Header */}
+        <div className="">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="mb-8">
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 bg-black bg-clip-text text-transparent">
+                Organizational Structure
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Visualize and manage your company hierarchy with precision
+              </p>
             </div>
-          </div>
-        </div>
-      </div> */}
-        {organizationData.length === 0 && createOrganization !== 0 && (
-          <div className="flex gap-2 justify-end items-center self-stretch px-3 py-2 rounded-md text-black text-opacity-50">
-            <div className="flex mb-7 justify-between">
+
+            {organizationData.length === 0 && createOrganization !== 0 && (
               <button
-                className="flex text-white text-end font-bold py-2 px-4 rounded"
                 onClick={() => handleOrganizationAddClick()}
-                style={{ backgroundColor: "#082f49" }}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 transform hover:-translate-y-0.5"
               >
-                + Add Organization
+                <AddCircleOutlineIcon />
+                <span>Add Organization</span>
               </button>
-            </div>
+            )}
           </div>
-        )}
+        </div>
 
-        {organizationData.length !== 0 ? (
-          <Box
-            sx={{
-              border: "2px solid #ccc",
-              borderRadius: "4px",
-              padding: "30px",
-            }}
-            style={{
-              minWidth: "900px", // Default minWidth for all screen sizes
-              "@media (max-width: 640px)": {
-                minWidth: "initial", // Reset minWidth for screens less than 640px
-              },
-            }}
-          >
-            <SimpleTreeView>
-              {organizationData.map((organizationItem, organizationIndex) => (
-                <TreeItem
-                  key={organizationItem.id}
-                  itemId={organizationItem.id}
-                  label={
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-row items-center gap-2 self-stretch px-4 py-1.5 my-auto whitespace-nowrap rounded-md cursor-pointer">
-                        <span>
-                          <img
-                            className="w-7 h-7"
-                            src={`${BASE_URL}/images/${organizationItem.logo}`}
-                            alt="Logo"
-                          />
-                        </span>
-                        <span>{organizationItem.name}</span>
-                        {createSector !== 0 && (
-                          <div
-                            className="flex gap-2 justify-center items-center self-stretch px-3 py-2 rounded-md text-black text-opacity-50 cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddSectorClick();
-                            }}
-                          >
-                            <AddCircleOutlineIcon style={{ fontSize: 20 }} />
-                            <span>Add Cluster</span>
-                          </div>
-                        )}
-                      </div>
+        {/* Main Content */}
+        <div className="bg-white rounded-2xl  border border-gray-200 overflow-hidden">
+          {organizationData.length !== 0 ? (
+            <div className="p-4 md:p-8">
+              <Box
+                sx={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "12px",
+                  padding: "24px",
+                  backgroundColor: "white",
+                }}
+                className="overflow-x-auto"
+              >
+                <SimpleTreeView className="min-w-[600px] lg:min-w-full">
+                  {organizationData.map(
+                    (organizationItem, organizationIndex) => (
+                      <TreeItem
+                        key={organizationItem.id}
+                        itemId={organizationItem.id}
+                        label={
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 hover:border-blue-300 transition-colors duration-200">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-center w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm">
+                                <img
+                                  className="w-8 h-8 object-contain"
+                                  src={`${BASE_URL}/images/${organizationItem.logo}`}
+                                  alt={`${organizationItem.name} logo`}
+                                  onError={(e) => {
+                                    e.target.src =
+                                      "https://via.placeholder.com/32";
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-800">
+                                  {organizationItem.name}
+                                </h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {
+                                    clusterData.filter(
+                                      (cluster) =>
+                                        cluster.sector.organization_id ===
+                                        organizationItem.id
+                                    ).length
+                                  }{" "}
+                                  clusters
+                                </p>
+                              </div>
+                            </div>
 
-                      {updateOrganization !== 0 && (
-                        <div className="cursor-pointer flex gap-2 text-white flex-row relative">
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditClick(organizationItem);
-                            }}
-                            className="text-blue-900 text-opacity-85"
-                          >
-                            <FaEdit size={19} />
+                            <div className="flex items-center gap-4">
+                              {createSector !== 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddSectorClick();
+                                  }}
+                                  className="flex items-center gap-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors duration-200 text-sm font-medium"
+                                >
+                                  <AddCircleOutlineIcon
+                                    style={{ fontSize: 18 }}
+                                  />
+                                  <span>Add Cluster</span>
+                                </button>
+                              )}
+
+                              {updateOrganization !== 0 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditClick(organizationItem);
+                                  }}
+                                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200 text-blue-600 hover:text-blue-800"
+                                  title="Edit Organization"
+                                >
+                                  <FaEdit size={18} />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  }
-                >
-                  {clusterData.map((clusterItem, clusterIndex) => (
-                    <TreeItem
-                      key={`task-${organizationIndex}-${clusterIndex}`}
-                      itemId={`task-${organizationIndex}-${clusterIndex}`}
-                      label={
-                        <Box className="grid grid-cols-4 py-2  text-sm max-md:flex-wrap max-md:px-5 ml-8">
-                          <div className="flex space-x-2 items-center">
-                            <div
-                              className="text-sm text-black"
-                              style={{ wordWrap: "break-word" }}
-                              onClick={() =>
-                                toggleTask(organizationIndex, clusterIndex)
+                        }
+                      >
+                        {clusterData
+                          .filter(
+                            (clusterItem) =>
+                              clusterItem.sector.organization_id ===
+                              organizationItem.id
+                          )
+                          .map((clusterItem, clusterIndex) => (
+                            <TreeItem
+                              key={`task-${organizationIndex}-${clusterIndex}`}
+                              itemId={`task-${organizationIndex}-${clusterIndex}`}
+                              label={
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors duration-200 ml-0 md:ml-6 mt-2">
+                                  <div className="md:col-span-5">
+                                    <div className="flex items-center gap-3">
+                                      <div className="flex items-center justify-center w-8 h-8 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                        <CircleIcon
+                                          className="text-blue-500 text-opacity-70"
+                                          style={{ fontSize: 16 }}
+                                        />
+                                      </div>
+                                      <div>
+                                        <h4 className="font-medium text-gray-800">
+                                          {clusterItem.sector.name}
+                                        </h4>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                          {clusterItem.sector.Divisions
+                                            ?.length || 0}{" "}
+                                          departments
+                                        </p>
+                                      </div>
+                                      {createSector !== 0 && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleAddDepartmentClick(
+                                              clusterItem.sector.sector_id
+                                            );
+                                          }}
+                                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200 text-xs font-medium ml-2"
+                                        >
+                                          <AddCircleOutlineIcon
+                                            style={{ fontSize: 16 }}
+                                          />
+                                          <span>Add Department</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="md:col-span-3">
+                                    <div className="flex items-center gap-2 text-gray-700">
+                                      <AccountCircleIcon className="text-blue-500" />
+                                      <span className="font-medium">
+                                        {clusterItem.leader.length !== 0 ? (
+                                          clusterItem.leader[0].full_name
+                                        ) : (
+                                          <span className="text-gray-400 italic">
+                                            To be assigned
+                                          </span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="md:col-span-4">
+                                    <div className="flex items-center justify-end gap-3">
+                                      {updateSector !== 0 && (
+                                        <button
+                                          onClick={() =>
+                                            handleClusterEditClick(clusterItem)
+                                          }
+                                          className="p-2 hover:bg-blue-50 rounded-lg transition-colors duration-200 text-blue-600 hover:text-blue-800"
+                                          title="Edit Cluster"
+                                        >
+                                          <FaEdit size={16} />
+                                        </button>
+                                      )}
+                                      {deleteSector !== 0 && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClusterDeleteClick(
+                                              clusterItem
+                                            );
+                                          }}
+                                          className="p-2 hover:bg-red-50 rounded-lg transition-colors duration-200 text-red-500 hover:text-red-700"
+                                          title="Delete Cluster"
+                                        >
+                                          <FaTrash size={14} />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
                               }
                             >
-                              <div className="flex flex-row font-normal text-sm items-center gap-2 ">
-                                <CircleIcon
-                                  style={{ fontSize: 13, opacity: "50%" }}
-                                />
-                                <span className="font-normal text-sm">
-                                  {" "}
-                                  {clusterItem.sector.name}
-                                </span>
-                              </div>
-                            </div>
-                            {createSector !== 0 && (
-                              <div
-                                className="flex gap-2 justify-center items-center self-stretch px-3 py-2 rounded-md text-black text-opacity-50 cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddDepartmentClick(
-                                    clusterItem.sector.sector_id
-                                  ); // Pass the sector ID here
-                                }}
-                              >
-                                <AddCircleOutlineIcon
-                                  style={{ fontSize: 20 }}
-                                />
-                                <span>Add Department</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-2 items-center text-blue-900 text-opacity-50">
-                            <AccountCircleIcon />
-                            {clusterItem.leader.length !== 0
-                              ? clusterItem.leader[0].full_name
-                              : "TBA"}
-                          </div>
+                              {clusterItem.sector.Divisions &&
+                                clusterItem.sector.Divisions.map(
+                                  (
+                                    selectedDepartment,
+                                    selectedDepartmentIndex
+                                  ) => (
+                                    <TreeItem
+                                      key={`subtask-${organizationIndex}-${clusterIndex}-${selectedDepartmentIndex}`}
+                                      itemId={`subtask-${organizationIndex}-${clusterIndex}-${selectedDepartmentIndex}`}
+                                      label={
+                                        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100 hover:border-blue-200 transition-colors duration-200 ml-0 md:ml-12 mt-2">
+                                          <div className="md:col-span-4">
+                                            <div className="flex items-center gap-3">
+                                              <div className="flex items-center justify-center w-6 h-6 bg-white rounded-md border border-gray-200 shadow-sm">
+                                                <span className="text-xs font-medium text-gray-600">
+                                                  {selectedDepartmentIndex + 1}
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <h5 className="font-medium text-gray-800">
+                                                  {selectedDepartment.name}
+                                                </h5>
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                  {selectedDepartment.Users
+                                                    ?.length || 0}{" "}
+                                                  members
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
 
-                          <div className="flex text-white flex-row relative justify-center rounded-md">
-                            <div className="actions flex flex-row gap-4">
-                              {updateSector !== 0 && (
-                                <div className=" text-white font-bold py-2  rounded cursor-pointer">
-                                  <div
-                                    className="text-blue-900"
-                                    onClick={() =>
-                                      handleClusterEditClick(clusterItem)
-                                    }
-                                  >
-                                    <FaEdit size={18} />
-                                  </div>
-                                </div>
-                              )}
-                              {deleteSector !== 0 && (
-                                <div className=" text-white font-bold py-2  rounded cursor-pointer">
-                                  <div
-                                    className="text-red-400 opacity-90"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleClusterDeleteClick(clusterItem);
-                                    }}
-                                  >
-                                    <FaTrash size={15} />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </Box>
-                      }
-                    >
-                      {clusterItem.sector.Divisions &&
-                        clusterItem.sector.Divisions.map(
-                          (selectedDepartment, selectedDepartmentIndex) => (
-                            <TreeItem
-                              style={{ backgroundColor: "#edf4fb" }}
-                              key={`subtask-${organizationIndex}-${clusterIndex}-${selectedDepartmentIndex}`}
-                              itemId={`subtask-${organizationIndex}-${clusterIndex}-${selectedDepartmentIndex}`}
-                              label={
-                                <Box className="flex flex-row gap-36 py-4 text-sm max-md:flex-wrap max-md:px-5 ml-5">
-                                  <div className="flex my-auto">
-                                    <div className="taskname flex flex-col gap-1 py-0.5 overflow-hidden">
-                                      <div
-                                        className="text-sm text-black"
-                                        style={{ wordWrap: "break-word" }}
-                                        onClick={() =>
-                                          toggleSubtask(
-                                            organizationIndex,
-                                            clusterIndex,
-                                            selectedDepartmentIndex
-                                          )
-                                        }
-                                      >
-                                        <div className="flex flex-row gap-2  ">
-                                          <span>
-                                            {" "}
-                                            {selectedDepartmentIndex + 1}.
-                                          </span>
-                                          <span>
-                                            {" "}
-                                            {selectedDepartment.name}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-6 text-blue-900 text-opacity-50 items-center">
-                                    <div className="flex gap-2">
-                                      <AccountCircleIcon />
-                                      {selectedDepartment.Users &&
-                                      selectedDepartment.Users.length !== 0
-                                        ? selectedDepartment.Users.some(
-                                            (user) => user.is_division_leader
-                                          )
-                                          ? selectedDepartment.Users.map(
-                                              (user) =>
-                                                user.is_division_leader
-                                                  ? user.full_name
-                                                  : null
-                                            ).filter((name) => name !== null)
-                                          : "TBA"
-                                        : "TBA"}
-                                    </div>
+                                          <div className="md:col-span-3">
+                                            <div className="flex items-center gap-2 text-gray-700">
+                                              <AccountCircleIcon className="text-blue-500" />
+                                              <span className="font-medium">
+                                                {selectedDepartment.Users &&
+                                                selectedDepartment.Users
+                                                  .length !== 0 ? (
+                                                  selectedDepartment.Users.find(
+                                                    (user) =>
+                                                      user.is_division_leader
+                                                  )?.full_name || (
+                                                    <span className="text-gray-400 italic">
+                                                      To be assigned
+                                                    </span>
+                                                  )
+                                                ) : (
+                                                  <span className="text-gray-400 italic">
+                                                    To be assigned
+                                                  </span>
+                                                )}
+                                              </span>
+                                            </div>
+                                          </div>
 
-                                    {addprojecttodepartment !== 0 && (
-                                      <div className=" text-white py-2  rounded cursor-pointer">
-                                        <div
-                                          className="text-red-500"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            console.log(
-                                              `Department ID: ${selectedDepartment.division_id}`
-                                            );
-                                            handleAddProjecttodepartment(
-                                              selectedDepartment
-                                            );
-                                          }}
-                                        >
-                                          <div className="text-black text-opacity-50 ">
-                                            <AddCircleOutlineIcon
-                                              style={{ fontSize: 20 }}
-                                            />
-                                            <span className="ml-1">
-                                              Add project{" "}
-                                            </span>
+                                          <div className="md:col-span-5">
+                                            <div className="flex flex-wrap items-center justify-end gap-3">
+                                              {addprojecttodepartment !== 0 && (
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleAddProjecttodepartment(
+                                                      selectedDepartment
+                                                    );
+                                                  }}
+                                                  className="flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-colors duration-200 text-xs font-medium"
+                                                >
+                                                  <AddCircleOutlineIcon
+                                                    style={{ fontSize: 14 }}
+                                                  />
+                                                  <span>Add Project</span>
+                                                </button>
+                                              )}
+
+                                              {assignmembertodepartment !==
+                                                0 && (
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSectorAssignMemberClick(
+                                                      selectedDepartment
+                                                    );
+                                                  }}
+                                                  className="flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-gray-50 text-gray-700 rounded-lg border border-gray-300 transition-colors duration-200 text-xs font-medium"
+                                                >
+                                                  <PersonAddAlt1Icon
+                                                    style={{ fontSize: 14 }}
+                                                  />
+                                                  <span>Assign Members</span>
+                                                </button>
+                                              )}
+
+                                              <div className="flex items-center gap-2">
+                                                {updateDepartment !== 0 && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleEditDepartmentClick(
+                                                        selectedDepartment
+                                                      );
+                                                    }}
+                                                    className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors duration-200 text-blue-600 hover:text-blue-800"
+                                                    title="Edit Department"
+                                                  >
+                                                    <FaEdit size={14} />
+                                                  </button>
+                                                )}
+                                                {deleteDepartment !== 0 && (
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleDeleteDepartmentClick(
+                                                        selectedDepartment
+                                                      );
+                                                    }}
+                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors duration-200 text-red-500 hover:text-red-700"
+                                                    title="Delete Department"
+                                                  >
+                                                    <FaTrash size={12} />
+                                                  </button>
+                                                )}
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    )}
+                                      }
+                                    />
+                                  )
+                                )}
+                            </TreeItem>
+                          ))}
+                      </TreeItem>
+                    )
+                  )}
+                </SimpleTreeView>
+              </Box>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <AccountCircleIcon
+                  className="text-gray-400"
+                  style={{ fontSize: 48 }}
+                />
+              </div>
+              <Typography variant="h6" className="text-gray-500 mb-4">
+                {noOrganization}
+              </Typography>
+              {createOrganization !== 0 && (
+                <button
+                  onClick={() => handleOrganizationAddClick()}
+                  className="mt-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  Create Your First Organization
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
-                                    {assignmembertodepartment !== 0 && (
-                                      <div className=" text-white py-2  rounded cursor-pointer">
-                                        <div
-                                          className="text-red-500"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            console.log(
-                                              `Department Name: ${selectedDepartment.name}`
-                                            );
-                                            handleSectorAssignMemberClick(
-                                              selectedDepartment
-                                            );
-                                          }}
-                                        >
-                                          <div className="text-black text-opacity-50">
-                                            <PersonAddAlt1Icon
-                                              style={{ fontSize: 20 }}
-                                            />
-                                            <span className="ml-1">
-                                              Assign Members
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex text-white flex-row relative justify-center rounded-md">
-                                    <div className="actions flex flex-row gap-4">
-                                      {updateDepartment !== 0 && (
-                                        <div className="text-white font-bold py-2 rounded pointer-events-auto">
-                                          <div
-                                            className="text-blue-900"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              console.log(
-                                                `Department name: ${selectedDepartment.name}`
-                                              );
-                                              handleEditDepartmentClick(
-                                                selectedDepartment
-                                              );
-                                            }}
-                                          >
-                                            <FaEdit size={18} />
-                                          </div>
-                                        </div>
-                                      )}
-                                      {deleteDepartment !== 0 && (
-                                        <div className="text-white font-bold py-2 rounded pointer-events-auto">
-                                          <div
-                                            className="text-red-500"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteDepartmentClick(
-                                                selectedDepartment
-                                              );
-                                            }}
-                                          >
-                                            <FaTrash size={15} />
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </Box>
-                              }
-                            />
-                          )
-                        )}
-                    </TreeItem>
-                  ))}
-                </TreeItem>
-              ))}
-            </SimpleTreeView>
-          </Box>
-        ) : (
-          <div class="text-center">
-            <Typography>{noActivity}</Typography>
-          </div>
-        )}
-
-        {/* Modals */}
-
-        {organizationaddModalOpen && (
-          <div className="fixed  top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
-            <div className="bg-white w-fit h-fit p-5 rounded-md relative">
-              <div
-                className="close cursor-pointer text-end mr-12 mt-5 "
-                onClick={handleOrganizationAddModalClose}
-              >
-                {" "}
-                X
+      {/* Modals */}
+      {organizationaddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Add Organization
+                </h2>
+                <button
+                  onClick={handleOrganizationAddModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <Addorganization
                 handleCloseModal={handleOrganizationAddModalClose}
@@ -922,17 +947,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {editModalOpen && (
-          <div className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
-            <div className="bg-white  rounded-md relative">
-              <div
-                className="close cursor-pointer text-end mr-8 mt-5 "
-                onClick={handleEditModalClose}
-              >
-                {" "}
-                X
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Edit Organization
+                </h2>
+                <button
+                  onClick={handleEditModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <Editorganization
                 leader={leader}
@@ -942,16 +973,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {addSectorModalOpen && (
-          <div className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
-            <div className="bg-white p-7  rounded-md relative">
-              <div
-                className=" cursor-pointer text-end mr-5  "
-                onClick={handleAddSectorModalClose}
-              >
-                {" "}
-                X
+        </div>
+      )}
+
+      {addSectorModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Add Cluster
+                </h2>
+                <button
+                  onClick={handleAddSectorModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <SectorAdd
                 handlefetchSectors={fetchClusters}
@@ -959,22 +997,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {addDepartmentModalOpen && (
-          <div
-            className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50"
-            onClick={handleAddDepartmentModalClose}
-          >
-            <div
-              className="bg-white px-12 w-fit rounded-md "
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className=" cursor-pointer text-end  mt-4  "
-                onClick={handleAddDepartmentModalClose}
-              >
-                {" "}
-                X
+        </div>
+      )}
+
+      {addDepartmentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Add Department
+                </h2>
+                <button
+                  onClick={handleAddDepartmentModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <DivisionAdd
                 handlefetchClusters={fetchClusters}
@@ -983,16 +1022,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {editClusterModalOpen && (
-          <div className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
-            <div className="bg-white rounded-md relative">
-              <div
-                className="close cursor-pointer text-end mr-12 mt-5 "
-                onClick={handleEditClusterModalClose}
-              >
-                {" "}
-                X
+        </div>
+      )}
+
+      {editClusterModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Edit Cluster
+                </h2>
+                <button
+                  onClick={handleEditClusterModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <SectorEdit
                 handlefetchClusters={fetchClusters}
@@ -1001,15 +1047,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {deleteClusterModalOpen && (
-          <div className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
-            <div className="bg-white w-1/2 pt-4 rounded-md relative">
-              <div
-                className="close cursor-pointer text-end mr-12 "
-                onClick={handleClusterDeleteModalClose}
-              >
-                X
+        </div>
+      )}
+
+      {deleteClusterModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Delete Cluster
+                </h2>
+                <button
+                  onClick={handleClusterDeleteModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <Sectordelete
                 handlefetchClusters={fetchClusters}
@@ -1018,22 +1072,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {editDepartmentModalOpen && (
-          <div
-            className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50"
-            onClick={handleEditDepartmentModalClose}
-          >
-            <div
-              className="bg-white w-fit px-8 rounded-md relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className="close cursor-pointer text-end  mt-5 "
-                onClick={handleEditDepartmentModalClose}
-              >
-                {" "}
-                X
+        </div>
+      )}
+
+      {editDepartmentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Edit Department
+                </h2>
+                <button
+                  onClick={handleEditDepartmentModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <Organizationaluniteditt
                 selectedRow={selectedRow}
@@ -1043,21 +1098,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {deleteDepartmentModalOpen && (
-          <div
-            className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50"
-            onClick={handleDeleteDepartmentModalClose}
-          >
-            <div
-              className="bg-white w-fit pt-4 rounded-md relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className="close cursor-pointer text-end mr-12 "
-                onClick={handleDeleteDepartmentModalClose}
-              >
-                X
+        </div>
+      )}
+
+      {deleteDepartmentModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Delete Department
+                </h2>
+                <button
+                  onClick={handleDeleteDepartmentModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <OrganizationalUnitdelete
                 selectedRow={selectedRow}
@@ -1068,21 +1125,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {addprojecttodepartmentOpen === !0 && (
-          <div
-            className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50"
-            onClick={handleAddProjecttodepartmentModalClose}
-          >
-            <div
-              className="bg-white h-5/6 overflow-y-scroll w-fit p-4 pl-8 pb-10 rounded-md "
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className="close flex justify-end cursor-pointer  "
-                onClick={handleAddProjecttodepartmentModalClose}
-              >
-                X
+        </div>
+      )}
+
+      {addprojecttodepartmentOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Add Project to Department
+                </h2>
+                <button
+                  onClick={handleAddProjecttodepartmentModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <Addprojecttodepartment
                 selectedRow={selectedRow}
@@ -1093,21 +1152,23 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-        {sectorAssignmemberModalOpen && (
-          <div
-            className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50"
-            onClick={handleSectorAssignmemberModalClose}
-          >
-            <div
-              className="bg-white w-fit p-4 pl-8 pb-10 rounded-md relative"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div
-                className="close flex justify-end cursor-pointer  "
-                onClick={handleSectorAssignmemberModalClose}
-              >
-                X
+        </div>
+      )}
+
+      {sectorAssignmemberModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Assign Members to Department
+                </h2>
+                <button
+                  onClick={handleSectorAssignmemberModalClose}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
               </div>
               <Departmentassignmembers
                 selectedRow={selectedRow}
@@ -1119,28 +1180,8 @@ const Structure = (props) => {
               />
             </div>
           </div>
-        )}
-
-        {/* {viewModalOpen && (
-        <div
-          className="fixed top-0 left-0 w-full h-full z-50 flex items-center justify-center bg-gray-800 bg-opacity-50"
-          onClick={handleViewModalClose}
-        >
-          <div
-            className="bg-white w-fit rounded-md relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className="close cursor-pointer text-end mr-12 mt-5"
-              onClick={handleViewModalClose}
-            >
-              X
-            </div>
-            <SectorDetail row={selectedRow} />
-          </div>
         </div>
-      )} */}
-      </div>
+      )}
     </div>
   );
 };

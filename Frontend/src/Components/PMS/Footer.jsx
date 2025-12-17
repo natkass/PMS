@@ -9,11 +9,11 @@ function Footer() {
         <p className="text-gray-900 font-serif text-sm sm:text-base">
           <span className="text-blue-800 font-bold not-italic mr-1">©</span>
           <span className="italic font-medium text-gray-800">
-            {currentYear} Federal Civil Service Commission of Ethiopia
+            {currentYear} Ethiopian Artificial Intelligence Institute
           </span>
           <span className="text-blue-600 mx-2 font-light">|</span>
           <span className="text-gray-600 text-xs font-light not-italic">
-            Building a professional, competent, and independent civil service
+            Artificial Intelligence, For all Ethiopians
           </span>
         </p>
       </div>
