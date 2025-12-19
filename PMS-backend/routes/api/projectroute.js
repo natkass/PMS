@@ -210,44 +210,45 @@ function Router(io) {
     .get(milestoneController.getAllMilestone);
 
   //comment
-  router
-    .route("/newcommentsubtask/:sub_task_id")
-    .post(verifyJWT, (req, res) => {
-      try {
-        CommentController.createComment(req, res, io);
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Server error" });
-      }
-    });
-  router
-    .route("/newcommentproject/:project_id")
-    .post(verifyJWT, CommentController.createComment);
-  router
-    .route("/newcommentactivity/:activity_id")
-    .post(verifyJWT, CommentController.createComment);
 
-  router
-    .route("/comment/:comment_id")
-    .get(verifyJWT, CommentController.getCommentById);
+  // router
+  //   .route("/newcommentsubtask/:sub_task_id")
+  //   .post(verifyJWT, (req, res) => {
+  //     try {
+  //       CommentController.createComment(req, res, io);
+  //     } catch (error) {
+  //       console.error(error);
+  //       res.status(500).json({ message: "Server error" });
+  //     }
+  //   });
+  // router
+  //   .route("/newcommentproject/:project_id")
+  //   .post(verifyJWT, CommentController.createComment);
+  // router
+  //   .route("/newcommentactivity/:activity_id")
+  //   .post(verifyJWT, CommentController.createComment);
 
-  router
-    .route("/getAllacommentOfSubtask/:sub_task_id")
-    .get(verifyJWT, CommentController.getAllComments);
-  router
-    .route("/getAllacommentOfProject/:project_id")
-    .get(verifyJWT, CommentController.getAllComments);
+  // router
+  //   .route("/comment/:comment_id")
+  //   .get(verifyJWT, CommentController.getCommentById);
 
-  router
-    .route("/getAllacommentOfActivity/:activity_id")
-    .get(verifyJWT, CommentController.getAllComments);
+  // router
+  //   .route("/getAllacommentOfSubtask/:sub_task_id")
+  //   .get(verifyJWT, CommentController.getAllComments);
+  // router
+  //   .route("/getAllacommentOfProject/:project_id")
+  //   .get(verifyJWT, CommentController.getAllComments);
 
-  router
-    .route("/updatecomment/:comment_id")
-    .put(verifyJWT, CommentController.updateComment);
-  router
-    .route("/deletecomment/:comment_id")
-    .delete(verifyJWT, CommentController.deleteComment);
+  // router
+  //   .route("/getAllacommentOfActivity/:activity_id")
+  //   .get(verifyJWT, CommentController.getAllComments);
+
+  // router
+  //   .route("/updatecomment/:comment_id")
+  //   .put(verifyJWT, CommentController.updateComment);
+  // router
+  //   .route("/deletecomment/:comment_id")
+  //   .delete(verifyJWT, CommentController.deleteComment);
 
   //notebook route
   router

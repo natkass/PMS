@@ -375,25 +375,323 @@ const apiService = {
       throw error;
     }
   },
-  addComment: async (commentData, params) => {
-    console.log(params);
+  // addComment: async (commentData, params) => {
+  //   console.log(params);
+  //   try {
+  //     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  //     const token = userInfo?.access_token;
+  //     if (!token) {
+  //       throw new Error("No token found");
+  //     }
+  //     const config = { headers: { Authorization: `Bearer ${token}` } };
+  //     const response = await instance.post(
+  //       `/project/newcommentactivity/${params.activity_id}`,
+  //       commentData,
+  //       config
+  //     );
+  //     return response;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // },
+  // getAllActivityComments: async (activity_id) => {
+  //   try {
+  //     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  //     const token = userInfo?.access_token;
+  //     if (!token) {
+  //       throw new Error("No token found");
+  //     }
+  //     const config = { headers: { Authorization: `Bearer ${token}` } };
+  //     const response = await instance.get(
+  //       `/project/getAllacommentOfActivity/${activity_id}`,
+  //       config
+  //     );
+
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Error fetching activity comments:", error);
+  //     throw error;
+  //   }
+  // },
+  // getAllSubtaskComments: async (sub_task_id) => {
+  //   try {
+  //     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  //     const token = userInfo?.access_token;
+  //     if (!token) {
+  //       throw new Error("No token found");
+  //     }
+  //     const config = { headers: { Authorization: `Bearer ${token}` } };
+  //     if (!sub_task_id) {
+  //       throw new Error("sub_task_id is undefined");
+  //     }
+  //     const response = await instance.get(
+  //       `/project/getAllacommentOfSubtask/${sub_task_id}`,
+  //       config
+  //     );
+  //     console.log("API response:", response); // Log the API response
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Error fetching subtask comments:", error);
+  //     throw error;
+  //   }
+  // },
+
+  // addSubtaskComment: async (commentData, params) => {
+  //   console.log(params);
+  //   try {
+  //     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+  //     const token = userInfo?.access_token;
+  //     if (!token) {
+  //       throw new Error("No token found");
+  //     }
+  //     const config = { headers: { Authorization: `Bearer ${token}` } };
+  //     const response = await instance.post(
+  //       `/project/newcommentsubtask/${params.sub_task_id}`,
+  //       commentData,
+  //       config
+  //     );
+  //     return response;
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // },
+
+  // Get comments with advanced filtering
+  getComments: async (params = {}) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
       const token = userInfo?.access_token;
       if (!token) {
         throw new Error("No token found");
       }
+
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      };
+
+      const response = await instance.get("/comments", config);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      throw error;
+    }
+  },
+
+  // Create a new comment
+  createComment: async (commentData) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await instance.post(
-        `/project/newcommentactivity/${params.activity_id}`,
-        commentData,
+
+      let endpoint = "/comments/comment";
+      if (commentData.activity_id) {
+        endpoint = `/comments/comment/activity/${commentData.activity_id}`;
+      } else if (commentData.sub_task_id) {
+        endpoint = `/comments/comment/subtask/${commentData.sub_task_id}`;
+      } else if (commentData.project_id) {
+        endpoint = `/comments/comment/project/${commentData.project_id}`;
+      }
+
+      const response = await instance.post(endpoint, commentData, config);
+      return response;
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      throw error;
+    }
+  },
+
+  // Update a comment
+  updateComment: async (commentId, updateData) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await instance.put(
+        `/comments/comment/${commentId}`,
+        updateData,
         config
       );
       return response;
     } catch (error) {
+      console.error("Error updating comment:", error);
       throw error;
     }
   },
+
+  // Delete a comment
+  deleteComment: async (commentId) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await instance.delete(
+        `/comments/comment/${commentId}`,
+        config
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      throw error;
+    }
+  },
+
+  // Toggle like on a comment
+  toggleLike: async (commentId) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      const response = await instance.post(
+        `/comments/comment/${commentId}/like`,
+        {},
+        config
+      );
+
+      return response;
+    } catch (error) {
+      console.error("Error liking comment:", error);
+      throw error;
+    }
+  },
+
+  // Toggle pin status
+  togglePin: async (commentId) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await instance.post(
+        `/comments/comment/${commentId}/pin`,
+        {},
+        config
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error toggling pin:", error);
+      throw error;
+    }
+  },
+
+  // Upload attachment
+  uploadAttachment: async (commentId, file) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      };
+
+      const response = await instance.post(
+        `/comments/${commentId}/attachments`,
+        formData,
+        config
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error uploading attachment:", error);
+      throw error;
+    }
+  },
+
+  // Remove attachment
+  removeAttachment: async (attachmentId) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      const response = await instance.delete(
+        `/comments/attachments/${attachmentId}`,
+        config
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error removing attachment:", error);
+      throw error;
+    }
+  },
+
+  // Get comment statistics
+  getCommentStats: async (params = {}) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      };
+
+      const response = await instance.get("/comments/stats", config);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching comment stats:", error);
+      throw error;
+    }
+  },
+
+  // Get user comments
+  getUserComments: async (userId, params = {}) => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      const token = userInfo?.access_token;
+      if (!token) {
+        throw new Error("No token found");
+      }
+
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+      };
+
+      const response = await instance.get(`/comments/user/${userId}`, config);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching user comments:", error);
+      throw error;
+    }
+  },
+
+  // Legacy methods for backward compatibility
   getAllActivityComments: async (activity_id) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -401,18 +699,19 @@ const apiService = {
       if (!token) {
         throw new Error("No token found");
       }
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await instance.get(
-        `/project/getAllacommentOfActivity/${activity_id}`,
-        config
-      );
 
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { activity_id },
+      };
+      const response = await instance.get("/comments/comment", config);
       return response.data;
     } catch (error) {
       console.error("Error fetching activity comments:", error);
       throw error;
     }
   },
+
   getAllSubtaskComments: async (sub_task_id) => {
     try {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
@@ -420,15 +719,12 @@ const apiService = {
       if (!token) {
         throw new Error("No token found");
       }
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      if (!sub_task_id) {
-        throw new Error("sub_task_id is undefined");
-      }
-      const response = await instance.get(
-        `/project/getAllacommentOfSubtask/${sub_task_id}`,
-        config
-      );
-      console.log("API response:", response); // Log the API response
+
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { sub_task_id },
+      };
+      const response = await instance.get("/comments/comment", config);
       return response.data;
     } catch (error) {
       console.error("Error fetching subtask comments:", error);
@@ -436,24 +732,26 @@ const apiService = {
     }
   },
 
+  addComment: async (commentData, params) => {
+    return apiService.createComment({
+      ...commentData,
+      activity_id: params?.activity_id,
+      sub_task_id: params?.sub_task_id,
+      project_id: params?.project_id,
+    });
+  },
+
   addSubtaskComment: async (commentData, params) => {
-    console.log(params);
-    try {
-      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-      const token = userInfo?.access_token;
-      if (!token) {
-        throw new Error("No token found");
-      }
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await instance.post(
-        `/project/newcommentsubtask/${params.sub_task_id}`,
-        commentData,
-        config
-      );
-      return response;
-    } catch (error) {
-      throw error;
-    }
+    return apiService.createComment({
+      ...commentData,
+      sub_task_id: params?.sub_task_id,
+    });
+  },
+  updateSubTask: async (commentData, params) => {
+    return apiService.createComment({
+      ...commentData,
+      sub_task_id: params?.sub_task_id,
+    });
   },
 
   taskadd: async (taskData, activity_id) => {
@@ -926,10 +1224,7 @@ const apiService = {
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
       const token = userInfo.access_token;
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const response = await instance.delete(
-        `/trash/deleteUser/${id}`,
-        config
-      );
+      const response = await instance.delete(`/trash/deleteUser/${id}`, config);
       return response.data;
     } catch (error) {
       throw error;

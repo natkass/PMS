@@ -1856,7 +1856,11 @@ const Workspace = (props) => {
                                                         <Badge
                                                           badgeContent={
                                                             subtaskItem.Coments
-                                                              ?.length || 0
+                                                              ? subtaskItem.Coments.filter(
+                                                                  (c) =>
+                                                                    !c.parent_comment_id
+                                                                ).length
+                                                              : 0
                                                           }
                                                           color="info"
                                                           size="small"
@@ -1866,7 +1870,7 @@ const Workspace = (props) => {
                                                       </IconButton>
                                                     </Tooltip>
                                                   )}
-                                                  {commentOnSubtask !== 0 && (
+                                                  {/* {commentOnSubtask !== 0 && (
                                                     <Tooltip title="Add comment">
                                                       <IconButton
                                                         size="small"
@@ -1882,7 +1886,7 @@ const Workspace = (props) => {
                                                         <AddCommentIcon fontSize="small" />
                                                       </IconButton>
                                                     </Tooltip>
-                                                  )}
+                                                  )} */}
                                                 </Box>
                                               </Grid>
 
@@ -2588,13 +2592,26 @@ const Workspace = (props) => {
       )}
 
       {viewCommentSubModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-10">
+          <div
+            className="bg-white rounded-xl w-11/12 md:w-3/4 lg:w-2/3 max-w-6xl max-h-[90vh]"
+            ref={modalRef}
+          >
             <Subtaskcommentview
               handlefetchActivity={fetchActivities}
               subtaskId={selectedSubTask?.sub_task_id}
               handleCloseModal={handleViewCommentModalClose}
+              userId={userInfo?.foundUser?.user_id}
               selectedTask={selectedTask}
+              userPermissions={{
+                canAddComment: commentOnSubtask !== 0,
+                canEditOwnComments: true,
+                canDeleteOwnComments: true,
+                canPinComments: true,
+                canViewPrivateComments:
+                  userInfo?.foundUser?.role === "admin" ||
+                  userInfo?.foundUser?.role === "manager",
+              }}
             />
           </div>
         </div>

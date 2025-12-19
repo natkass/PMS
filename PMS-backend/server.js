@@ -24,10 +24,15 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/settings", require("./routes/api/settings"));
 app.use("/api/ums", require("./routes/api/ums"));
+app.use("/api/comments", require("./routes/api/commentroute")(server));
 app.use("/api/organization", require("./routes/api/organization"));
-app.use("/api/project", require("./routes/api/projectroute")(socketConfig(server))); // Pass server to socketConfig
+app.use(
+  "/api/project",
+  require("./routes/api/projectroute")(socketConfig(server))
+); // Pass server to socketConfig
 app.use(verifyJWT);
 app.use("/api/trash", require("./routes/api/trash"));
+app.use("/uploads", express.static("uploads"));
 
 // Serve frontend build
 app.use(express.static(path.join(__dirname, "build")));

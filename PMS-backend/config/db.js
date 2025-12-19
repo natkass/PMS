@@ -50,6 +50,8 @@ db.Sub_task = require("../models/sub_task")(sequelize, Sequelize);
 db.Document = require("../models/document")(sequelize, Sequelize);
 db.Document_type = require("../models/document_type")(sequelize, Sequelize);
 db.Comment = require("../models/comment")(sequelize, Sequelize);
+db.CommentLike = require("../models/commentLike")(sequelize, Sequelize);
+
 db.Team = require("../models/team")(sequelize, Sequelize);
 
 db.Task_member = require("../models/task_member")(sequelize, Sequelize);
